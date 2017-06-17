@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project>
+	<version position="right"/>
+    <body>
+        <links>
+        	<item name="SourceForge page" href="http://sourceforge.net/projects/juoserver/" target="_blank"/>
+            <item name="Maven 3" href="http://maven.apache.org/" target="_blank"/>
+            <item name="J2SE 1.6" href="http://java.sun.com/javase/6/docs/api/" target="_blank"/>
+        </links>
+        <menu name="JUOServer">
+            <item name="Introduction" href="/index.html" />
+            <item name="Usage" href="/usage.html" />
+            <item name="Develop" href="/develop.html" />
+            <item name="Protocol getting-started" href="/protocol-getting-started.html" />
+            <item name="Legal" href="/legal.html" />
+            <item name="Licence" href="/licence.html" />
+        </menu>
+        <menu ref="reports"/>
+    </body>
+</project>

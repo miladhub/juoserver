@@ -1,0 +1,209 @@
+How to develop
+
+* Developer prerequisites
+
+    These are the prerequisites for developers:
+
+        * A Java IDE, e.g. {{{http://www.eclipse.org/}Eclipse \u2122}}.
+
+        * <<Apache Maven>> - {{{http://maven.apache.org}Maven}} this is a great build tool
+        which ensures build replicability; you don't need to have a deep understanding of it
+        to use it, it's just enough that you successfully install it.
+        
+        * <<TCP/IP>> - You should be familiar with the basics of client-server communication, namely
+        the {{{http://en.wikipedia.org/wiki/TCP/IP_model}TCP/IP protocol stack}} (and related basic
+        concepts, like sockets).
+        
+        * <<Subversion>> ({{{http://subversion.tigris.org/}SVN}}) - It's essential to work together
+        and it's also quite easy to use.
+        
+        * Exclusively for reference purposes, it's useful to consult {{{http://www.runuo.com/}RunUO}}
+        source code; for this, you'll need a C# IDE: either {{{http://www.microsoft.com/express/Downloads}
+        Visual Studio Express}} if you're on Windows, or {{{http://monodevelop.com/MonoDevelop}MonoDevelop}}
+        on Linux (if you're on Ubuntu, I suggest you add the {{{http://badgerports.org/}badger repository}}
+        which provides the latest installer through synaptic package manager).
+    
+        * Again for reference purposes, bookmark the {{{http://docs.polserver.com/packets/}POL packet reference}}.
+        
+* How to get started
+
+    Once you meet the prerequisites, check out the sources with SVN:
+    
++-----+
+$ svn co https://juoserver.svn.sourceforge.net/svnroot/juoserver juoserver
++-----+
+
+    and build it:
+    
++-----+
+$ cd juoserver
+$ mvn clean install
+...
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
++-----+
+
+    You are now able to {{{./usage.html#How_to_start_the_server}start the server}}.
+    
+* Import the project into Eclipse
+
+    If, like me, you're using Eclipse, I suggest you install the following plugins:
+    
+        * {{{http://m2eclipse.sonatype.org/}m2eclipse}} to import the project,
+        
+        * {{{http://subclipse.tigris.org/}subclipse}} to be able to check out and
+        commit with SVN from Eclispe.
+        
+    Once you have them, you can import the project using m2eclipse and keep synchronized
+    with the SVN repository with subclipse.
+    
+* Run the server from within the IDE
+
+    You can of course run and <<debug>> the server from your IDE, executing the
+    <<<net.sf.juoserver.networking.Server>>> class.
+        
+* State of the project
+
+    The project is still <<very>> alpha, it still needs crucial features and structure.
+    
+    {{{./usage.html#Features}These}} are the features that have been included so far.
+        
+    I'll now briefly describe the main parts composing the system, as it is now.
+    
+** Network
+
+    This is the network architecture of the system:
+    
+[./network-arch.png]
+
+    It is nothing more than an ordinary server with clients running on separate threads. 
+
+** Controller
+
+    The server <<controller>> is implemented by the {{{./apidocs/net/sf/juoserver/controller/Controller.html}Controller}} class,
+    which manages two aspect of the server itself:
+    
+        * By means of {{{./apidocs/net/sf/juoserver/api/ProtocolController.html}ProtocolController}} interface,
+        it acts as a protocol controller, managing a basic request-reply mechanism (synchronous semantics),
+        
+        * By means of the {{{./apidocs/net/sf/juoserver/controller/IntercomListener.html}IntercomListener}} interface, it is able
+        of being connected to the other clients' controllers, thus implementing inter-client communication (asynchronous semantics).
+    
+** Model
+    
+    The model has no precise architecture, yet. It is rather a "flat" aggregation of
+    classes, notably:
+    
+        * {{{./apidocs/net/sf/juoserver/model/Mobile.html}Mobile}}, which has (also) a set of <<<Item>>>s, each on a separate
+        {{{./apidocs/net/sf/juoserver/model/Layer.html}Layer}},
+        
+        * {{{./apidocs/net/sf/juoserver/model/Item.html}Item}}.
+        
+    I plan to add classes and interfaces as they become needed. One important characteristic
+    of the model is that it is completely <<oblivious>> of the controller and the other layers,
+    which, in turn, depend on the model to implement their concerns (e.g., the controller
+    uses <<<Mobile>>> to notify clients of approaching characters).
+    
+* Road-map
+
+    This is a collection of objectives. Having time, I'd like to turn these into
+    tasks within the Sourceforge issue tracker. The lists are <<partial>>, there are
+    surely a LOT more things to be done!
+
+** Short-term objectives
+
+    Add these features:
+    
+    	* Improve the dragging & dropping of items:
+    	
+    		* Now it works only to and from the ground,
+    		
+    		* Do it also to and from any container (e.g. your backpack),
+    		
+    		* Enable the drag & drop between characters.
+        
+        * Notify clients also on login when necessary (by now they're notified only when moving the
+        characters),
+    
+    	* Implement a complete (though simple) combat scenario (this is more a user story),
+            
+        * Introduce <<scripts>>. They will designed according to the {{{http://en.wikipedia.org/wiki/Active_object}active-object}}
+        pattern, meaning the scripts will run in the core's thread.
+        
+        * Implements <<LOS>> (line of sight).
+
+** Long-term objectives
+
+    They include, most important first:
+    
+        * Add persistence (I'd like not to use a relational DB, but we'll see...) and read
+        mobiles, items, accounts, etc from the chosen persistent store,
+        
+        * Improve inter-clients notifications - is the current
+        pattern suitable for the task? By now a simple <observer>
+        is employed, but as simple as it is there are already signs
+        of its being unfit, because these different semantics are
+        needed:
+        
+            * Point-to-point (when having to notify a single client),
+            
+            * Topic-like, when a character must be visible to a group
+            of other characters.
+            
+        Maybe the observer pattern is not the best for this, because
+        it forces the controller to add checks like (point-to-point):
+            
++----+
+@Override
+public void onEnteredRange(Mobile entered, Mobile target) throws IntercomException {
+    if (!target.equals( mobile )) {
+        return; // Point-to-point semantics
+    }
+    ...
+}
++----+
+
+        or (topic):
+            
++----+
+@Override
+public void onOtherMobileMovement(Mobile moving) throws IntercomException {
+    if (moving.equals( mobile )) {
+        return; // Ignore self-notifying messages
+    }
+    ....
+}
++----+
+            
+        I'd much more like it if it this filtering was done <<declaratively>>,
+        rather than imperatively (I've done something like this using Prolog,
+        so I could just use it).
+        
+        Also, the <<<Intercom>>> class is used statically, which is not so cool.
+        
+        * Implement system notifications (i.e., messages on the lower
+        part of the client's screen),
+        
+        * Add a CLI (command line interface) acting like another sort of client,
+        
+    .. all of this while not putting in any custom policy about skills and so on: I want to keep as
+    <<abstract>> and simple as possible.
+    
+* Spring
+
+    Among the aims of this project is learning, therefore I decided to adopt the
+    {{{http://www.springsource.com/developer/spring}Spring Framework}} for dependency
+    injection (and probably not only).
+
+    Consequences of adopting Spring:
+    
+        * Because Spring IoC framework injects dependencies <<after>> the objects have been created,
+        classes constructors can no longer rely on injected dependencies. Consequently, the <<<init()>>>
+        methods cannot be called by constructor: it will belong to the classes' interface (this is an
+        up-side).
+        
+        * The dependency injection happens only when the creation of the objects is performed by
+        the Spring framework - i.e. you cannot have a class injected with a dependency if you create
+        that class with the <<new>> operator: it all has to start by calling a <<<getBean()>>> method
+        on the Spring application context.

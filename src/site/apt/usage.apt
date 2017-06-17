@@ -1,0 +1,215 @@
+Usage
+
+* Prerequisites
+
+    These are the prerequisites for JUOServer users:
+
+        * <<Java SE 1.6>> - see the {{{http://java.sun.com/}Java site}}.
+        
+        * The <<UO client>>, Mondain's Legacy \u2122 version. Notes:
+        
+            * Though it's possible to install the client on operating systems other than Windows \u2122,
+            the easiest way on another operating system is to just install Windows \u2122 on a virtual
+            machine and UO on it;
+            
+            * By now I've decided to restrict the version we're gonna use to <<<5.0.6e>>>;
+            I didn't find a friendly way to get that exact version yet, by now you'll just have
+            to go with the UO updater and manually stop/kill it when you get at the right
+            version (if you're on a virtual machine, take a snapshot of it before doing that,
+            so that you can revert any unwanted update). Let me know if there's a better
+            way to accomplish this!
+
+        * You'll also need {{{http://www.runuo.com/razor/}Razor}}, which will launch the UO
+        client and remove the encryption.
+
+* Configuring the server
+	
+** Property file
+	
+	All the properties needed by the server in order to properly work are looked up in a
+	property file whose absolute path can be specified by defining a system property named
+	<<<juoserver.propFilePath>>> - e.g.,
+	
++-----+
+... -Djuoserver.propFilePath=/path/to/myjuoserver.properties ...
++-----+
+
+	If this system property is not specified, the server tries to read the property file
+	from the following default location:
+	
++-----+
+YOUR_HOME/.juoserver/juoserver.properties
++-----+
+
+** Properties
+
+    Up until now, the following properties exist:
+    
+    	* <<uopath>> - Mantatory property indicating the path of the UO installation
+    	within the file system (which is needed in order for the server to properly
+    	read maps and other files). 
+    	
+    	* <<server.name>> - String representing the name of the server as can be seen
+    	by clients when connecting to it; default value: <<<JUOServer>>>.
+    	
+    	* <<server.host>> - This property represents the internet address to which clients
+    	will try to connect to <<after>> they selected the server by name (this is done right
+    	after having entered the username and password) and should therefore be set to an
+    	internet address that clients will be able to connect to once they've looked it up.
+    	
+    	The default value of the <<server.host>> property is <<<localhost>>>, which is suitable
+    	only for the case in which both server and client run on the same machine (see below for
+    	details).
+    	
+    	Note that this property's value is <<not>> necessarily the same as the internet address
+    	on which the server will listen on; in particular, the UO login protocol requires that
+    	(see also the {{{./protocol-getting-started.html}Protocol getting started}} page): 
+    	
+    		[[1]] The server will listen on <<all>> the available addresses on the machine
+    		it runs on (you can verify it by running the <<<netstat>>> command),
+    		
+    		[[2]] Clients connect to the server by connecting to the internet address
+    		specified by the "Server:" label in the Razor window, 
+    		
+    		[[3]] When a client connects to the server and after they enter their credentials,
+    		they will be presented with a list of server containing a single entry, whose
+    		name equals the value of the <<server.name>> property,
+    		
+    		[[4]] When the client selects the server by clicking on the right arrow button
+    		in the bottom-right corner of the client window, it actually shuts down the previously
+    		used connection and starts a new one, and attempts to connect to the internet endpoint
+    		defined by:
+    		
+    			* Address = value of the property <<server.host>>,
+    			
+    			* Port = value of the property <<server.port>>.
+    	
+    	This distinction is important in all cases in which the address that clients actually used
+    	to initially connect to the server (defined in the Razor window) differs from this property's
+    	value, because it is possible that while the former is reachable from the client, the latter
+    	is not.
+    	
+    	For example, if you don't specify a value for the <<server.host>> property, start both the
+    	server and the client on the same computer and select <<<localhost>>> on the Razor window, then
+    	you'll have no problem in connecting and proceeding into the game, because both connections
+    	(the initial one and the one used after the server has been selected) will be the same
+    	(<<<localhost>>>).
+    	
+    	Instead, if you still don't specify a value for the <<server.host>> property and start the server
+    	on one machine, <<S>> and the client from another machine <<C>>, the initial connection will succeed,
+    	meaning you'll get past the login screen (where you enter username and password), but when you select
+    	the server the client will hang for sometime and eventually yield the following message: "The client
+    	could not attach to the game server. It must have been taken down, please wait a few minutes and
+    	try again". This happens because, even though the client machine C can reach the server machine S (i.e.,
+    	it can <ping> it), C won't recognize S by the name <<localhost>>.
+    	
+    	For this reason, the <<server.host>> property should be set to an internet address that clients
+    	will be able to connect to after they've looked it up: for a LAN environment it can be something like
+    	<<<10.0.0.105>>>, while for a real WAN usage it must be a public internet address (either a numberic IP
+    	or a resolvable name). You can avoid specifying this property only if you run both the server and the
+    	client on the same machine.
+    	
+    	* <<server.port>> - This is both the port on which the server listens for clients
+    	connections, and the port used to define the endpoint on which the clients will be
+    	redirected to after they've selected the server (see previous property's explanation). Default
+    	value: <<<7775>>>.
+    	
+    This is sample contents of the property file:
+    
++-----+
+uopath = /home/myuser/UOML
+server.host = 10.0.0.105
+server.port = 2593
++-----+
+
+    Furthermore, if you want to use the {{{./apidocs/net/sf/juoserver/files/CustomizationHelper.html}CustomizationHelper}}
+    class, you'll need to define the following properties:
+    	
+    	* <<skills.idxFileName>> - Name of the skills index file - e.g., <<<Skills.idx>>>
+    	
+    	* <<skills.mulFileName>> - Name of the skills mul file - e.g., <<<skills.mul>>>
+
+* {How to start the server}
+	
+	If you have Maven and a working copy of the project, you start the server by
+	issuing the following command from the project's base directory (unless you
+	modify the script, if you use this method the property file is searched for
+	in the default location):
+
++-----+	
+$ ./juoserver 
+21:38:11,744 INFO  [Server] listening on port 7775
++-----+
+
+    This is how you start the server without having Maven installed (the "\" symbol
+    is a way to split the command line into more lines on Linux shells):
+    
++-----+
+$ java -Djuoserver.propFilePath=/path/to/my.properties -jar juoserver-VERSION-jar-with-dependencies.jar
+...
+17:19:43,033 INFO  [Server] listening on port 7775
++-----+
+
+    The <<<juoserver-VERSION-jar-with-dependencies.jar>>> file can be downloaded from the
+    {{{https://sourceforge.net/projects/juoserver/files/repo/net/sf/juoserver/juoserver/}sourceforge download page}},
+    and VERSION is something like <<<1.0.0-20110501.153224-5>>> (when the project has non-SNAPSHOT versions,
+    this will simply be like <<<1.0.0>>>).
+    
+* {How to log in}
+
+	From version <<<1.0.1>>>, "real" <<credentials>> must be provided in order to log in: <<<admin>>> / <<<admin>>>.
+
+* Screenshots
+
+	This is a screenshot of how a sample session looks like (this is the state of the art):
+	
+[./login.png]
+
+* {Features}
+
+    By now you'll just be able to:
+        
+        * Log in with two clients in the same time and see each other's movements,
+    
+        * Walk & Run,
+        
+        * Talk to each other,
+        
+        * See your stats,
+        
+        * See your skills (with up, down and locked arrows),
+        
+        * Admire your paperdoll :-)
+        
+        * Drop items on the ground,
+        
+        * Equip them dragging them from the ground,
+        
+        * Open your empty backpack.
+        
+    All the data is hard-coded, including:
+    
+    	* One account (with {{{How_to_log_in}these}} credentials),
+    	
+    	* Two characters, dressed the same (with copies of the same items equipped). 
+	
+* Use as a dependency
+
+	This is how you use the project as a dependency from another Maven project:
+	
++-----+
+<repositories>
+    <repository>
+        <id>juoserver-repo</id>
+        <name>juoserver-repo</name>
+        <url>http://sourceforge.net/projects/juoserver/files/repo</url>
+    </repository>
+</repositories>
+<dependencies>
+    <dependency>
+        <groupId>net.sf.juoserver</groupId>
+        <artifactId>juoserver</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+</dependencies>
++-----+

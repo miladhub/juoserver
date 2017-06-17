@@ -1,0 +1,43 @@
+Java Ultima Online Server
+
+	This is a Java-based UO server.
+	
+* Motivations
+
+	These are the motivations that pushed me to start this project:
+	
+		* I'm a big UO fan
+	
+		* I like Java
+
+		* I'm interested in building a new system from scratch,
+		mainly because I work with Java EE and I don't have the
+		chance to experiment the "whole stack" very often -
+		from TCP/IP to the higher levels.
+
+* Goals
+
+    The goals of the project are as follows:
+
+        * <<Light UO engine>> - the project must enable people to implement a
+        very few classes or set a very few parameters in a configuration file and to be
+        provided with a basic UO engine who lets them do the basic stuff: damage,
+        spells and so on.
+        
+        * <<Modularity>> - users must be able to do this without anything they
+        don't need being packaged in.
+        
+        * <<Extensibility>> - users must be able to add <plugin> scripts that add features
+        to the server.
+    
+* Contents
+
+    These are the main contents of this site:
+    
+        * {{{./usage.html}How you use the project}},
+        
+        * {{{./develop.html}How you develop the project}},
+        
+        * For developers, I'll give {{{./protocol-getting-started.html}a clue about the UO protocol}}.
+
+    Any other links can be found over on the left side of the page.
